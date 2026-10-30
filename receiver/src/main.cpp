@@ -5,6 +5,19 @@
 #include <Adafruit_SSD1306.h>
 #include <SPI.h>
 #include <RadioLib.h>
+#include <map>
+#include <vector>
+
+// ==============================================================
+// Symbols bitmaps
+// --------------------------------------------------------------
+const unsigned char waitingSymbol[] PROGMEM = {
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x80, 0x00, 0x04, 0x20, 0x00, 0x08, 0x10, 0x00, 0x11,
+    0x08, 0x00, 0x21, 0x00, 0x00, 0x21, 0x3f, 0xc0, 0x20, 0x20, 0x00, 0x20, 0x20, 0x80, 0x10, 0x10,
+    0x80, 0x08, 0x0b, 0x00, 0x04, 0x26, 0x00, 0x01, 0x99, 0x00, 0x00, 0x00, 0x80, 0x00, 0x2e, 0x80,
+    0x00, 0x2e, 0x80, 0x00, 0x3f, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+
+// ==============================================================
 
 // ==============================================================
 // LoRa Receiver
@@ -15,11 +28,7 @@
 #define LORA_RST 14
 
 // Create the LoRa radio object
-SX1278 radio = new Module(
-    LORA_CS,
-    LORA_DIO0,
-    LORA_RST,
-    -1);
+SX1278 radio = new Module(LORA_CS, LORA_DIO0, LORA_RST, -1);
 
 // Function to send a simple message
 void receiveMessage();
@@ -100,6 +109,9 @@ void loop()
   display.setTextSize(1);
   display.setCursor(0, 0);
   display.print("Waiting for message..");
+  display.setCursor(0, 8);
+  display.drawBitmap(0, 8, waitingSymbol, 20, 20, WHITE);
+
   // Receive message with LoRa
   receiveMessage();
 
