@@ -62,11 +62,14 @@ SX1278 radio = new Module(
 // Function to send a simple message
 void sendMessage();
 
+// Function to send sensor data
+void sendSensor(const DHTReadings &readings);
+
 // ==============================================================
 // Count seconds since program started to execute things every
 // selected interval of time
 // --------------------------------------------------------------
-const unsigned long INTERVAL = 1000; // ms
+const unsigned long INTERVAL = 2000; // ms
 unsigned long lastRun = 0;
 // ==============================================================
 
@@ -141,10 +144,22 @@ void loop()
 
     display.clearDisplay();
     printTitles();
-    displayValues(readings.h, readings.t, readings.f, readings.hic, readings.hif);
+
+    if (readings.valid)
+    {
+      displayValues(readings.h, readings.t, readings.f, readings.hic, readings.hif);
+    }
+    else
+    {
+      display.setCursor(0, 37);
+      display.print("SENSOR ERROR");
+    };
 
     // Send message with LoRa
     sendMessage();
+
+    // Send sensor data with LoRa
+    sendSensor(readings);
 
     display.display();
   };
@@ -162,6 +177,7 @@ DHTReadings readDHT22()
   if (isnan(h) || isnan(t) || isnan(f))
   {
     Serial.println(F("Failed to read from DHT sensor!"));
+    return {0, 0, 0, 0, 0, false};
   }
 
   // Compute heat index in Fahrenheit (the default)
@@ -244,8 +260,8 @@ void sendMessage()
   {
     Serial.println("Message sent successfully!");
 
-    display.setCursor(0, 0);
-    display.print("Out ok!-- ");
+    // display.setCursor(0, 0);
+    // display.print("Out ok!-- ");
 
     // Wait for the response
     String response;
@@ -257,7 +273,67 @@ void sendMessage()
       Serial.print("Response: ");
       Serial.println(response);
 
-      // display.setCursor(0, 0);
+      display.print(response);
+    }
+  }
+  else
+  {
+    Serial.print("Transmission failed: ");
+    Serial.println(state);
+
+    display.setCursor(0, 0);
+    display.print("TRANSM. FAILED!");
+  }
+}
+
+void sendSensor(const DHTReadings &readings)
+{
+  // Check whether the sensor readings are valid
+  if (!readings.valid)
+  {
+    Serial.println("Invalid sensor readings. Transmission skipped.");
+    return;
+  }
+
+  Serial.println("Preparing weather data...");
+
+  // Create a buffer to store the message
+  char message[100];
+
+  // Format the sensor readings into a string
+  snprintf(
+      message,
+      sizeof(message),
+      "H=%.1f,T=%.1f,F=%.1f,HIC=%.1f,HIF=%.1f",
+      readings.h,
+      readings.t,
+      readings.f,
+      readings.hic,
+      readings.hif);
+
+  Serial.print("Sending: ");
+  Serial.println(message);
+
+  // Transmit the message
+  int state = radio.transmit(message);
+
+  if (state == RADIOLIB_ERR_NONE)
+  {
+    Serial.println("Message sent successfully!");
+
+    display.setCursor(0, 0);
+    display.print("TX OK!");
+
+    // Wait for the response
+    String response;
+
+    state = radio.receive(response);
+
+    if (state == RADIOLIB_ERR_NONE)
+    {
+      Serial.print("Response: ");
+      Serial.println(response);
+
       display.print(response);
     }
   }
