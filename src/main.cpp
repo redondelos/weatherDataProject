@@ -11,6 +11,9 @@
 #define SCREEN_HEIGHT 64 // OLED display height, in pixels
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
+
+void printTitles();
+void displayValues(float h, float t, float f, float hic, float hif);
 // ==============================================================
 
 // ==============================================================
@@ -84,6 +87,8 @@ void loop()
     printSerial(readings.h, readings.t, readings.f, readings.hic, readings.hif);
 
     display.clearDisplay();
+    printTitles();
+    displayValues(readings.h, readings.t, readings.f, readings.hic, readings.hif);
     display.display();
   };
 };
@@ -124,3 +129,49 @@ void printSerial(float h, float t, float f, float hic, float hif)
   Serial.print(hif);
   Serial.println(F("°F"));
 };
+
+void printTitles()
+{
+  display.setCursor(0, 0);
+  display.print("DHT22 Sensor");
+
+  display.drawLine(0, 14, 128, 14, WHITE);
+  display.setCursor(0, 16);
+  display.print("Humidity: ");
+
+  display.drawLine(0, 25, 128, 25, WHITE);
+
+  display.setCursor(0, 27);
+  display.print("Temp in ");
+  display.write(247);
+  display.print("C");
+
+  display.setCursor(65, 27);
+  display.print("Temp in ");
+  display.write(247);
+  display.print("F");
+  display.drawLine(63, 27, 63, 64, WHITE);
+};
+
+void displayValues(float h, float t, float f, float hic, float hif)
+{
+  display.setCursor(55, 16);
+  display.print(h);
+  display.print(" %");
+
+  display.setTextSize(2);
+  display.setCursor(0, 37);
+  display.print(t);
+
+  display.setCursor(65, 37);
+  display.print(f);
+
+  display.setTextSize(1);
+
+  display.setCursor(0, 54);
+  display.print("FL: ");
+  display.print(hic);
+  display.setCursor(65, 54);
+  display.print("FL: ");
+  display.print(hif);
+}
