@@ -23,13 +23,40 @@ SX1278 radio = new Module(
 
 // Function to send a simple message
 void receiveMessage();
+// ==============================================================
+
+// ==============================================================
+//                           OLED DISPLAY
+// --------------------------------------------------------------
+#define SCREEN_WIDTH 128 // OLED display width, in pixels
+#define SCREEN_HEIGHT 32 // OLED display height, in pixels
+
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 
 void setup()
 {
   Serial.begin(9600);
 
+  // Initialize OLED Display
+
+  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C))
+  { // Address 0x3D for 128x64
+    Serial.println(F("SSD1306 allocation failed"));
+    for (;;)
+      ;
+  }
+  delay(2000);
+
+  display.clearDisplay();
+  display.setTextColor(WHITE);
+
   // Initialize LoRa
   Serial.println("Initializing LoRa...");
+
+  display.setCursor(0, 0);
+  display.setTextSize(1);
+  display.print("LoRa initializing");
+  display.display();
 
   // Initialize radio
   int state = radio.begin(
@@ -45,11 +72,20 @@ void setup()
   if (state == RADIOLIB_ERR_NONE)
   {
     Serial.println("LoRa initialized!");
+
+    display.setCursor(0, 15);
+    display.print("SUCCESS!");
+
+    display.display();
   }
   else
   {
     Serial.print("Initialization failed: ");
     Serial.println(state);
+
+    display.setCursor(0, 15);
+    display.println("FAIL! - RESET");
+    display.display();
 
     while (true)
     {
@@ -60,8 +96,14 @@ void setup()
 
 void loop()
 {
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setCursor(0, 0);
+  display.print("Waiting for message..");
   // Receive message with LoRa
   receiveMessage();
+
+  display.display();
 };
 
 void receiveMessage()
@@ -81,6 +123,12 @@ void receiveMessage()
 
     Serial.print("SNR: ");
     Serial.println(radio.getSNR());
+
+    display.setTextSize(2);
+    display.setCursor(0, 0);
+    display.print("MESSAGE");
+    display.setCursor(0, 15);
+    display.print("RECEIVED");
   }
   else if (state != RADIOLIB_ERR_RX_TIMEOUT)
   {
