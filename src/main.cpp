@@ -1,6 +1,6 @@
 #include <Arduino.h>
-#include <DHT.h>
 #include <Wire.h>
+#include <DHT.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 
@@ -52,6 +52,23 @@ void setup()
   Serial.begin(9600);
   Serial.println("DHT22 TEST!");
   dht.begin();
+
+  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C))
+  { // Address 0x3D for 128x64
+    Serial.println(F("SSD1306 allocation failed"));
+    for (;;)
+      ;
+  }
+  delay(2000);
+  display.clearDisplay();
+
+  display.setTextSize(1);
+  display.setTextColor(WHITE);
+  display.setCursor(0, 0);
+  // Display static text
+  display.println("HELLO!");
+  display.display();
+  delay(1000);
 }
 
 void loop()
@@ -65,6 +82,9 @@ void loop()
 
     // Print DHT22 values in serial monitor
     printSerial(readings.h, readings.t, readings.f, readings.hic, readings.hif);
+
+    display.clearDisplay();
+    display.display();
   };
 };
 
