@@ -83,7 +83,7 @@ void setup()
 
   // Initialize radio
   int state = radio.begin(
-      433.0, // Frequency
+      470.0, // Frequency
       125.0, // Bandwidth
       9,     // Spreading factor
       7,     // Coding rate
