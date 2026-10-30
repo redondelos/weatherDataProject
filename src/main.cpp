@@ -1,15 +1,25 @@
 #include <Arduino.h>
 #include <DHT.h>
 #include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
 
+// ==============================================================
+//                           OLED DISPLAY
+// --------------------------------------------------------------
+#define SCREEN_WIDTH 128 // OLED display width, in pixels
+#define SCREEN_HEIGHT 64 // OLED display height, in pixels
+
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
+// ==============================================================
+
+// ==============================================================
+//                          DHT22 sensor
+// --------------------------------------------------------------
 #define DHTPIN 4
 #define DHTTYPE DHT22
 
 DHT dht(DHTPIN, DHTTYPE);
-
-// Count seconds since program started
-const unsigned long INTERVAL = 1000; // ms
-unsigned long lastRun = 0;
 
 // Declare a struct to define the values that sensor reading function should return
 struct DHTReadings
@@ -27,6 +37,15 @@ DHTReadings readDHT22();
 
 // Declare function to print things in serial monitor
 void printSerial(float h, float t, float f, float hic, float hif);
+// ==============================================================
+
+// ==============================================================
+// Count seconds since program started to execute things every
+// selected interval of time
+// --------------------------------------------------------------
+const unsigned long INTERVAL = 1000; // ms
+unsigned long lastRun = 0;
+// ==============================================================
 
 void setup()
 {
