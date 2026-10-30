@@ -8,19 +8,19 @@
 #include <map>
 #include <vector>
 
-// ==============================================================
-// Symbols bitmaps
-// --------------------------------------------------------------
+// ================================================================================================
+//                                       SYMBOLS FOR BITMAPS
+// ------------------------------------------------------------------------------------------------
 const unsigned char waitingSymbol[] PROGMEM = {
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x80, 0x00, 0x04, 0x20, 0x00, 0x08, 0x10, 0x00, 0x11,
     0x08, 0x00, 0x21, 0x00, 0x00, 0x21, 0x3f, 0xc0, 0x20, 0x20, 0x00, 0x20, 0x20, 0x80, 0x10, 0x10,
     0x80, 0x08, 0x0b, 0x00, 0x04, 0x26, 0x00, 0x01, 0x99, 0x00, 0x00, 0x00, 0x80, 0x00, 0x2e, 0x80,
     0x00, 0x2e, 0x80, 0x00, 0x3f, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
-// ==============================================================
+// ================================================================================================
 
 // ==============================================================
-// LoRa Receiver
+//                        LoRa RECEIVER
 // --------------------------------------------------------------
 // ESP32 pin configuration
 #define LORA_CS 5
@@ -136,11 +136,20 @@ void receiveMessage()
     Serial.print("SNR: ");
     Serial.println(radio.getSNR());
 
-    display.setTextSize(2);
+    display.clearDisplay();
     display.setCursor(0, 0);
-    display.print("MESSAGE");
-    display.setCursor(0, 15);
-    display.print("RECEIVED");
+    display.println("MESSAGE RECEIVED");
+    display.println(receivedMessage);
+    // display.display();
+
+    // RESPONSE
+    int txState = radio.transmit("Wave Back");
+
+    if (txState == RADIOLIB_ERR_NONE)
+    {
+      Serial.println("Response transmitted!");
+      display.print("Response sent!");
+    }
   }
   else if (state != RADIOLIB_ERR_RX_TIMEOUT)
   {
