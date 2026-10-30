@@ -7,45 +7,7 @@
 #include <RadioLib.h>
 
 // ==============================================================
-//                           OLED DISPLAY
-// --------------------------------------------------------------
-#define SCREEN_WIDTH 128 // OLED display width, in pixels
-#define SCREEN_HEIGHT 64 // OLED display height, in pixels
-
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
-
-void printTitles();
-void displayValues(float h, float t, float f, float hic, float hif);
-// ==============================================================
-
-// ==============================================================
-//                          DHT22 sensor
-// --------------------------------------------------------------
-#define DHTPIN 4
-#define DHTTYPE DHT22
-
-DHT dht(DHTPIN, DHTTYPE);
-
-// Declare a struct to define the values that sensor reading function should return
-struct DHTReadings
-{
-  float h;
-  float t;
-  float f;
-  float hif;
-  float hic;
-  bool valid;
-};
-
-// Declare a function to return sensor reading values
-DHTReadings readDHT22();
-
-// Declare function to print things in serial monitor
-void printSerial(float h, float t, float f, float hic, float hif);
-// ==============================================================
-
-// ==============================================================
-// LoRa Transmitter
+// LoRa Receiver
 // --------------------------------------------------------------
 // ESP32 pin configuration
 #define LORA_CS 5
@@ -60,23 +22,11 @@ SX1278 radio = new Module(
     -1);
 
 // Function to send a simple message
-void sendMessage();
-
-// ==============================================================
-// Count seconds since program started to execute things every
-// selected interval of time
-// --------------------------------------------------------------
-const unsigned long INTERVAL = 1000; // ms
-unsigned long lastRun = 0;
-// ==============================================================
+void receiveMessage();
 
 void setup()
 {
   Serial.begin(9600);
-
-  // Initialize DHT22 Sensor
-  Serial.println("DHT22 TEST!");
-  dht.begin();
 
   // Initialize LoRa
   Serial.println("Initializing LoRa...");
@@ -106,152 +56,36 @@ void setup()
       delay(10);
     }
   };
-
-  // Initialize OLED Display
-
-  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C))
-  { // Address 0x3D for 128x64
-    Serial.println(F("SSD1306 allocation failed"));
-    for (;;)
-      ;
-  }
-  delay(2000);
-  display.clearDisplay();
-
-  display.setTextSize(1);
-  display.setTextColor(WHITE);
-  display.setCursor(0, 0);
-  // Display static text
-  display.println("HELLO!");
-  display.display();
-  delay(1000);
 }
 
 void loop()
 {
-  if (millis() - lastRun >= INTERVAL)
-  {
-    lastRun = millis();
-
-    // Get values from DHT22 sensor
-    DHTReadings readings = readDHT22();
-
-    // Print DHT22 values in serial monitor
-    printSerial(readings.h, readings.t, readings.f, readings.hic, readings.hif);
-
-    display.clearDisplay();
-    printTitles();
-    displayValues(readings.h, readings.t, readings.f, readings.hic, readings.hif);
-
-    // Send message with LoRa
-    sendMessage();
-
-    display.display();
-  };
+  // Receive message with LoRa
+  receiveMessage();
 };
 
-DHTReadings readDHT22()
+void receiveMessage()
 {
-  float h = dht.readHumidity();
-  // Read temperature as Celsius (the default)
-  float t = dht.readTemperature();
-  // Read temperature as Fahrenheit (isFahrenheit = true)
-  float f = dht.readTemperature(true);
+  String receivedMessage;
 
-  // Check if any reads failed and exit early (to try again).
-  if (isnan(h) || isnan(t) || isnan(f))
-  {
-    Serial.println(F("Failed to read from DHT sensor!"));
-  }
-
-  // Compute heat index in Fahrenheit (the default)
-  float hif = dht.computeHeatIndex(f, h);
-  // Compute heat index in Celsius (isFahreheit = false)
-  float hic = dht.computeHeatIndex(t, h, false);
-
-  return {h, t, f, hif, hic, true};
-};
-
-void printSerial(float h, float t, float f, float hic, float hif)
-{
-  Serial.print(F("Humidity: "));
-  Serial.print(h);
-  Serial.print(F("%  Temperature: "));
-  Serial.print(t);
-  Serial.print(F("°C "));
-  Serial.print(f);
-  Serial.print(F("°F  Heat index: "));
-  Serial.print(hic);
-  Serial.print(F("°C "));
-  Serial.print(hif);
-  Serial.println(F("°F"));
-};
-
-void printTitles()
-{
-  // display.setCursor(0, 0);
-  // display.print("DHT22 Sensor");
-
-  display.drawLine(0, 14, 128, 14, WHITE);
-  display.setCursor(0, 16);
-  display.print("Humidity: ");
-
-  display.drawLine(0, 25, 128, 25, WHITE);
-
-  display.setCursor(0, 27);
-  display.print("Temp in ");
-  display.write(247);
-  display.print("C");
-
-  display.setCursor(65, 27);
-  display.print("Temp in ");
-  display.write(247);
-  display.print("F");
-  display.drawLine(63, 27, 63, 64, WHITE);
-};
-
-void displayValues(float h, float t, float f, float hic, float hif)
-{
-  display.setCursor(55, 16);
-  display.print(h);
-  display.print(" %");
-
-  display.setTextSize(2);
-  display.setCursor(0, 37);
-  display.print(t);
-
-  display.setCursor(65, 37);
-  display.print(f);
-
-  display.setTextSize(1);
-
-  display.setCursor(0, 54);
-  display.print("FL: ");
-  display.print(hic);
-  display.setCursor(65, 54);
-  display.print("FL: ");
-  display.print(hif);
-}
-
-void sendMessage()
-{
-  Serial.println("Sending message...");
-
-  int state = radio.transmit("Hello from ESP32!");
+  int state = radio.receive(receivedMessage);
 
   if (state == RADIOLIB_ERR_NONE)
   {
-    Serial.println("Message sent successfully!");
 
-    display.setCursor(0, 0);
-    display.print("MESSAGE SENT!");
+    Serial.print("Received message: ");
+    Serial.println(receivedMessage);
+
+    Serial.print("RSSI: ");
+    Serial.println(radio.getRSSI());
+
+    Serial.print("SNR: ");
+    Serial.println(radio.getSNR());
   }
-  else
+  else if (state != RADIOLIB_ERR_RX_TIMEOUT)
   {
-    Serial.print("Transmission failed: ");
-    Serial.println(state);
 
-    display.setCursor(0, 0);
-    display.print("TRANSM. FAILED!");
+    Serial.print("Receive failed: ");
+    Serial.println(state);
   }
 }
