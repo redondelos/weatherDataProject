@@ -237,6 +237,7 @@ void sendMessage()
 {
   Serial.println("Sending message...");
 
+  // Transmit a message
   int state = radio.transmit("Hello from ESP32!");
 
   if (state == RADIOLIB_ERR_NONE)
@@ -244,7 +245,21 @@ void sendMessage()
     Serial.println("Message sent successfully!");
 
     display.setCursor(0, 0);
-    display.print("MESSAGE SENT!");
+    display.print("Out ok!-- ");
+
+    // Wait for the response
+    String response;
+
+    state = radio.receive(response);
+
+    if (state == RADIOLIB_ERR_NONE)
+    {
+      Serial.print("Response: ");
+      Serial.println(response);
+
+      // display.setCursor(0, 0);
+      display.print(response);
+    }
   }
   else
   {
