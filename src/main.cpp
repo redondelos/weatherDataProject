@@ -4,7 +4,6 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include <SPI.h>
-#include <LoRa.h>
 #include <RadioLib.h>
 
 // ==============================================================
@@ -46,6 +45,24 @@ void printSerial(float h, float t, float f, float hic, float hif);
 // ==============================================================
 
 // ==============================================================
+// LoRa Transmitter
+// --------------------------------------------------------------
+// ESP32 pin configuration
+#define LORA_CS 5
+#define LORA_DIO0 26
+#define LORA_RST 14
+
+// Create the LoRa radio object
+SX1278 radio = new Module(
+    LORA_CS,
+    LORA_DIO0,
+    LORA_RST,
+    -1);
+
+// Function to send a simple message
+void sendMessage();
+
+// ==============================================================
 // Count seconds since program started to execute things every
 // selected interval of time
 // --------------------------------------------------------------
@@ -56,8 +73,41 @@ unsigned long lastRun = 0;
 void setup()
 {
   Serial.begin(9600);
+
+  // Initialize DHT22 Sensor
   Serial.println("DHT22 TEST!");
   dht.begin();
+
+  // Initialize LoRa
+  Serial.println("Initializing LoRa...");
+
+  // Initialize radio
+  int state = radio.begin(
+      433.0, // Frequency
+      125.0, // Bandwidth
+      9,     // Spreading factor
+      7,     // Coding rate
+      0x12,  // Sync word
+      10,    // TX power
+      8      // Preamble
+  );
+
+  if (state == RADIOLIB_ERR_NONE)
+  {
+    Serial.println("LoRa initialized!");
+  }
+  else
+  {
+    Serial.print("Initialization failed: ");
+    Serial.println(state);
+
+    while (true)
+    {
+      delay(10);
+    }
+  };
+
+  // Initialize OLED Display
 
   if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C))
   { // Address 0x3D for 128x64
@@ -92,6 +142,10 @@ void loop()
     display.clearDisplay();
     printTitles();
     displayValues(readings.h, readings.t, readings.f, readings.hic, readings.hif);
+
+    // Send message with LoRa
+    sendMessage();
+
     display.display();
   };
 };
@@ -135,8 +189,8 @@ void printSerial(float h, float t, float f, float hic, float hif)
 
 void printTitles()
 {
-  display.setCursor(0, 0);
-  display.print("DHT22 Sensor");
+  // display.setCursor(0, 0);
+  // display.print("DHT22 Sensor");
 
   display.drawLine(0, 14, 128, 14, WHITE);
   display.setCursor(0, 16);
@@ -177,4 +231,27 @@ void displayValues(float h, float t, float f, float hic, float hif)
   display.setCursor(65, 54);
   display.print("FL: ");
   display.print(hif);
+}
+
+void sendMessage()
+{
+  Serial.println("Sending message...");
+
+  int state = radio.transmit("Hello from ESP32!");
+
+  if (state == RADIOLIB_ERR_NONE)
+  {
+    Serial.println("Message sent successfully!");
+
+    display.setCursor(0, 0);
+    display.print("MESSAGE SENT!");
+  }
+  else
+  {
+    Serial.print("Transmission failed: ");
+    Serial.println(state);
+
+    display.setCursor(0, 0);
+    display.print("TRANSM. FAILED!");
+  }
 }
