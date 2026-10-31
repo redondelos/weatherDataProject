@@ -12,10 +12,8 @@
 //                                       SYMBOLS FOR BITMAPS
 // ------------------------------------------------------------------------------------------------
 const unsigned char waitingSymbol[] PROGMEM = {
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x80, 0x00, 0x04, 0x20, 0x00, 0x08, 0x10, 0x00, 0x11,
-    0x08, 0x00, 0x21, 0x00, 0x00, 0x21, 0x3f, 0xc0, 0x20, 0x20, 0x00, 0x20, 0x20, 0x80, 0x10, 0x10,
-    0x80, 0x08, 0x0b, 0x00, 0x04, 0x26, 0x00, 0x01, 0x99, 0x00, 0x00, 0x00, 0x80, 0x00, 0x2e, 0x80,
-    0x00, 0x2e, 0x80, 0x00, 0x3f, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+    0x3f, 0xf0, 0x10, 0x20, 0x10, 0x20, 0x10, 0x20, 0x08, 0x40, 0x0c, 0xc0, 0x07, 0x80, 0x07, 0x80,
+    0x0c, 0xc0, 0x08, 0x40, 0x10, 0x20, 0x10, 0x20, 0x10, 0x20, 0x3f, 0xf0};
 
 // ================================================================================================
 
@@ -31,16 +29,24 @@ const unsigned char waitingSymbol[] PROGMEM = {
 SX1278 radio = new Module(LORA_CS, LORA_DIO0, LORA_RST, -1);
 
 // Function to send a simple message
-void receiveMessage();
+String receiveMessage();
+
+// Parse string message into variables
+void parseMessage(String message);
+
+// Function to check if value is valid once parsed
+bool isValidNumber(String value);
 // ==============================================================
 
 // ==============================================================
 //                           OLED DISPLAY
 // --------------------------------------------------------------
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
-#define SCREEN_HEIGHT 32 // OLED display height, in pixels
+#define SCREEN_HEIGHT 64 // OLED display height, in pixels
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
+
+void printTitles();
 
 void setup()
 {
@@ -106,19 +112,48 @@ void setup()
 void loop()
 {
   display.clearDisplay();
-  display.setTextSize(1);
-  display.setCursor(0, 0);
-  display.print("Waiting for message..");
-  display.setCursor(0, 8);
-  display.drawBitmap(0, 8, waitingSymbol, 20, 20, WHITE);
 
-  // Receive message with LoRa
-  receiveMessage();
+  printTitles();
+
+  // Parse message
+  String message = receiveMessage();
+
+  if (message.length() > 0)
+  {
+
+    parseMessage(message);
+  }
 
   display.display();
 };
 
-void receiveMessage()
+void printTitles()
+{
+  // display.setCursor(0, 0);
+  // display.print("DHT22 Sensor");
+
+  display.setCursor(0, 0);
+  display.println("TX: ");
+
+  display.drawLine(0, 14, 128, 14, WHITE);
+  display.setCursor(0, 16);
+  display.print("Humidity: ");
+
+  display.drawLine(0, 25, 128, 25, WHITE);
+
+  display.setCursor(0, 27);
+  display.print("Temp in ");
+  display.write(247);
+  display.print("C");
+
+  display.setCursor(65, 27);
+  display.print("Temp in ");
+  display.write(247);
+  display.print("F");
+  display.drawLine(63, 27, 63, 64, WHITE);
+};
+
+String receiveMessage()
 {
   String receivedMessage;
 
@@ -136,11 +171,11 @@ void receiveMessage()
     Serial.print("SNR: ");
     Serial.println(radio.getSNR());
 
-    display.clearDisplay();
-    display.setCursor(0, 0);
-    display.println("MESSAGE RECEIVED");
-    display.println(receivedMessage);
-    // display.display();
+    Serial.print("TX: ");
+    Serial.println(receivedMessage);
+
+    display.setCursor(15, 0);
+    display.print(" Data received!");
 
     // RESPONSE
     int txState = radio.transmit("Wave Back");
@@ -148,7 +183,6 @@ void receiveMessage()
     if (txState == RADIOLIB_ERR_NONE)
     {
       Serial.println("Response transmitted!");
-      display.print("Response sent!");
     }
   }
   else if (state != RADIOLIB_ERR_RX_TIMEOUT)
@@ -157,4 +191,150 @@ void receiveMessage()
     Serial.print("Receive failed: ");
     Serial.println(state);
   }
+  else if (state != RADIOLIB_ERR_NONE)
+  {
+    display.setCursor(15, 0);
+    display.print(" Waiting...");
+    display.drawBitmap(80, 0, waitingSymbol, 14, 14, WHITE);
+  };
+
+  return receivedMessage;
+}
+
+void parseMessage(String message)
+{
+  // Find the beginning of each field
+  int hStart = message.indexOf("H=");
+  int tStart = message.indexOf("T=");
+  int fStart = message.indexOf("F=");
+  int hicStart = message.indexOf("HIC=");
+  int hifStart = message.indexOf("HIF=");
+
+  // Check that all labels exist
+  if (hStart < 0 || tStart < 0 || fStart < 0 ||
+      hicStart < 0 || hifStart < 0)
+  {
+    Serial.println("Invalid message!");
+    return;
+  }
+
+  // Find the ending positions
+  int hEnd = message.indexOf(",", hStart);
+  int tEnd = message.indexOf(",", tStart);
+  int fEnd = message.indexOf(",", fStart);
+  int hicEnd = message.indexOf(",", hicStart);
+  int hifEnd = message.length();
+
+  // Check that the separators exist
+  if (hEnd < 0 || tEnd < 0 || fEnd < 0 || hicEnd < 0)
+  {
+    Serial.println("Invalid message!");
+    return;
+  }
+
+  // Extract text
+  String humidityTxt = message.substring(hStart + 2, hEnd);
+  String temperatureCTxt = message.substring(tStart + 2, tEnd);
+  String temperatureFTxt = message.substring(fStart + 2, fEnd);
+  String hicTxt = message.substring(hicStart + 4, hicEnd);
+  String hifTxt = message.substring(hifStart + 4, hifEnd);
+
+  // Validate all numerical fields
+  if (!isValidNumber(humidityTxt) ||
+      !isValidNumber(temperatureCTxt) ||
+      !isValidNumber(temperatureFTxt) ||
+      !isValidNumber(hicTxt) ||
+      !isValidNumber(hifTxt))
+  {
+    Serial.println("Invalid numerical data!");
+    return;
+  }
+
+  // Convert strings into floats
+  float humidity = humidityTxt.toFloat();
+  float temperatureC = temperatureCTxt.toFloat();
+  float temperatureF = temperatureFTxt.toFloat();
+  float heatIndexC = hicTxt.toFloat();
+  float heatIndexF = hifTxt.toFloat();
+
+  // Validate humidity range
+  if (humidity < 0 || humidity > 100)
+  {
+    Serial.println("Humidity out of range!");
+    return;
+  }
+
+  // Print measurements
+  Serial.println("--- Parsed measurements ---");
+
+  Serial.print("Humidity: ");
+  Serial.println(humidity);
+
+  Serial.print("Temperature C: ");
+  Serial.println(temperatureC);
+
+  Serial.print("Temperature F: ");
+  Serial.println(temperatureF);
+
+  Serial.print("Heat Index C: ");
+  Serial.println(heatIndexC);
+
+  Serial.print("Heat Index F: ");
+  Serial.println(heatIndexF);
+}
+
+bool isValidNumber(String value)
+{
+  bool decimalFound = false;
+  bool negativeFound = false;
+
+  if (value.length() == 0)
+  {
+    return false;
+  }
+
+  for (int i = 0; i < value.length(); i++)
+  {
+
+    char character = value.charAt(i);
+
+    if (isDigit(character))
+    {
+      continue;
+    }
+
+    if (character == '.')
+    {
+
+      if (decimalFound)
+      {
+        return false;
+      }
+
+      decimalFound = true;
+    }
+
+    else if (character == '-')
+    {
+
+      if (i != 0 || negativeFound)
+      {
+        return false;
+      }
+
+      negativeFound = true;
+    }
+
+    else
+    {
+      return false;
+    }
+  }
+
+  if (value == "-" || value == "." || value == "-.")
+  {
+    return false;
+  }
+
+  return true;
 }
