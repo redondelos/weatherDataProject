@@ -6,6 +6,15 @@
 #include <SPI.h>
 #include <RadioLib.h>
 
+// ================================================================================================
+// BITMAPS
+// ------------------------------------------------------------------------------------------------
+// '2way', 13x13px
+const unsigned char twoWay[] PROGMEM = {
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x40, 0x28, 0xa0, 0x4f, 0x90, 0x80, 0x08, 0x4f, 0x90,
+    0x28, 0xa0, 0x10, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+// ================================================================================================
+
 // ==============================================================
 //                           OLED DISPLAY
 // --------------------------------------------------------------
@@ -125,7 +134,7 @@ void setup()
   display.setTextColor(WHITE);
   display.setCursor(0, 0);
   // Display static text
-  display.println("HELLO!");
+  display.print("STARTING...");
   display.display();
   delay(1000);
 }
@@ -151,12 +160,12 @@ void loop()
     }
     else
     {
-      display.setCursor(0, 37);
-      display.print("SENSOR ERROR");
+      display.setCursor(0, 0);
+      display.print("SENSOR FAIL");
     };
 
     // Send message with LoRa
-    sendMessage();
+    // sendMessage();
 
     // Send sensor data with LoRa
     sendSensor(readings);
@@ -272,8 +281,6 @@ void sendMessage()
     {
       Serial.print("Response: ");
       Serial.println(response);
-
-      display.print(response);
     }
   }
   else
@@ -321,8 +328,8 @@ void sendSensor(const DHTReadings &readings)
   {
     Serial.println("Message sent successfully!");
 
-    display.setCursor(0, 0);
-    display.print("TX OK!");
+    display.setCursor(0, 3);
+    display.print("TX OK!  ");
 
     // Wait for the response
     String response;
@@ -334,7 +341,8 @@ void sendSensor(const DHTReadings &readings)
       Serial.print("Response: ");
       Serial.println(response);
 
-      display.print(response);
+      // display.print(response);
+      display.drawBitmap(40, 0, twoWay, 13, 13, WHITE);
     }
   }
   else
