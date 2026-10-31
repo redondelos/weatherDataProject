@@ -48,6 +48,9 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 
 void printTitles();
 
+// Display values in OLED
+void displayValues(float h, float t, float f, float hic, float hif);
+
 void setup()
 {
   Serial.begin(9600);
@@ -124,6 +127,8 @@ void loop()
     parseMessage(message);
   }
 
+  // displayValues(parseMessage);
+
   display.display();
 };
 
@@ -162,6 +167,7 @@ String receiveMessage()
   if (state == RADIOLIB_ERR_NONE)
   {
 
+    Serial.println();
     Serial.print("Received message: ");
     Serial.println(receivedMessage);
 
@@ -281,6 +287,9 @@ void parseMessage(String message)
 
   Serial.print("Heat Index F: ");
   Serial.println(heatIndexF);
+
+  // Print in OLED
+  displayValues(humidity, temperatureC, temperatureF, heatIndexC, heatIndexF);
 }
 
 bool isValidNumber(String value)
@@ -337,4 +346,27 @@ bool isValidNumber(String value)
   }
 
   return true;
+}
+
+void displayValues(float h, float t, float f, float hic, float hif)
+{
+  display.setCursor(55, 16);
+  display.print(h);
+  display.print(" %");
+
+  display.setTextSize(2);
+  display.setCursor(0, 37);
+  display.print(t);
+
+  display.setCursor(65, 37);
+  display.print(f);
+
+  display.setTextSize(1);
+
+  display.setCursor(0, 54);
+  display.print("FL: ");
+  display.print(hic);
+  display.setCursor(65, 54);
+  display.print("FL: ");
+  display.print(hif);
 }
