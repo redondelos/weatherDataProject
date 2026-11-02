@@ -291,7 +291,7 @@ void parseMessage(String message)
   // Print in OLED
   displayValues(humidity, temperatureC, temperatureF, heatIndexC, heatIndexF);
 }
-
+// This function makes sure there are no extra decimal points or negative signs in wrong positions
 bool isValidNumber(String value)
 {
   bool decimalFound = false;
